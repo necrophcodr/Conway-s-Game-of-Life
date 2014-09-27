@@ -1,74 +1,99 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
 #include <SFML/Graphics.h>
 
-#define WIDTH 		1024
-#define HEIGHT 		768
-#define CELL_SIZE 	16
+#define WIDTH			1024
+#define HEIGHT			768
+
+#define CELL_SIZE		16
+
+#define CELL_COUNT_X	WIDTH / CELL_SIZE
+#define CELL_COUNT_Y	HEIGHT / CELL_SIZE
 
 typedef enum state {
 	DEAD,
 	ALIVE
 } STATE;
 
-void game_loop( sfRenderWindow* window, sfEvent* event, sfRectangleShape* rectangles[] )
+void initiliaze( sfRectangleShape* rectangles[] )
 {
-	while ( sfRenderWindow_isOpen( window ) )
+	srand( 10 );
+
+	int y;
+	for ( y = 0; y < CELL_COUNT_Y; y++ )
 	{
-		while ( sfRenderWindow_pollEvent( window, event ) )
+		int x;
+		for ( x = 0; x < CELL_COUNT_X; x++ )
 		{
-			if ( event->type == sfEvtClosed )
-				sfRenderWindow_close( window );
+			rectangles[y * CELL_COUNT_X + x] = sfRectangleShape_create();
+			if ( !rectangles[y * CELL_COUNT_X + x] )
+				return 1;
+
+			sfVector2f	position	= { x * CELL_SIZE, y * CELL_SIZE  };
+			sfVector2f	size		= { CELL_SIZE, CELL_SIZE  };
+			sfColor		color		= { 1+rand()%255, 1+rand()%255, 1+rand()%255, 255 };
+
+			sfRectangleShape_setPosition( rectangles[y * CELL_COUNT_X + x], position );
+			sfRectangleShape_setSize( rectangles[y * CELL_COUNT_X + x], size );
+			sfRectangleShape_setFillColor( rectangles[y * CELL_COUNT_X + x], color );
 		}
-
-		sfRenderWindow_clear( window, sfBlack );
-
-		int i;
-		for ( i = 0; i < HEIGHT / CELL_SIZE; i++ )
-		{
-			int j;
-			for ( j = 0; j < WIDTH / CELL_SIZE; j++ )
-			{
-				sfRenderWindow_drawRectangleShape( window, rectangles[i * WIDTH/CELL_SIZE + j], NULL );
-			}
-		}
-
-		sfRenderWindow_display( window );
 	}
+}
+
+void handle_input( sfRenderWindow* window, sfEvent* event )
+{
+	while ( sfRenderWindow_pollEvent( window, event ) )
+	{
+		if ( event->type == sfEvtClosed )
+			sfRenderWindow_close( window );
+	}
+}
+
+void update()
+{
+}
+
+void clean_up( sfRenderWindow* window, sfRectangleShape* rectangles[] )
+{
+	int y;
+	for ( y = 0; y < CELL_COUNT_Y; y++ )
+	{
+		int x;
+		for ( x = 0; x < CELL_COUNT_X; x++ )
+		{
+			sfRectangleShape_destroy( rectangles[y * CELL_COUNT_X + x] );
+		}
+	}
+	sfRenderWindow_destroy( window );
+}
+
+void render( sfRenderWindow* window, sfRectangleShape* rectangles[] )
+{
+	sfRenderWindow_clear( window, sfBlack );
+
+	int y;
+	for ( y = 0; y < CELL_COUNT_Y; y++ )
+	{
+		int x;
+		for ( x = 0; x < CELL_COUNT_X; x++ )
+		{
+			sfRenderWindow_drawRectangleShape( window, rectangles[y * CELL_COUNT_X + x], NULL );
+		}
+	}
+
+	sfRenderWindow_display( window );
 }
 
 int main( int argc, char** argv )
 {
-	sfVideoMode 	mode 	= {WIDTH, HEIGHT, 32};
-	sfRenderWindow* window 	= NULL;
+	sfVideoMode			mode	= { WIDTH, HEIGHT, 32 };
+	sfRenderWindow*		window	= NULL;
 
-	sfEvent 		event;
+	sfEvent				event;
 
-	STATE 			cells[WIDTH / CELL_SIZE][HEIGHT / CELL_SIZE] = {DEAD};
-	sfRectangleShape*	rectangles[(WIDTH / CELL_SIZE) * (HEIGHT / CELL_SIZE)];
-
-	srand( 10 );
-
-	int i;
-	for ( i = 0; i < HEIGHT / CELL_SIZE; i++ )
-	{
-		int j;
-		for ( j = 0; j < WIDTH / CELL_SIZE; j++ )
-		{
-			rectangles[i * WIDTH/CELL_SIZE + j] = sfRectangleShape_create();
-			if ( !rectangles[i * WIDTH/CELL_SIZE +j] )
-				return 2;
-			sfVector2f 	position 	= { j * CELL_SIZE, i * CELL_SIZE  };
-			sfVector2f 	size 		= { CELL_SIZE, CELL_SIZE  };
-			sfColor 	color		= { 1+rand()%255, 1+rand()%255, 1+rand()%255, 255 };
-
-			sfRectangleShape_setPosition( rectangles[i * WIDTH/CELL_SIZE + j], position );
-			sfRectangleShape_setSize( rectangles[i * WIDTH/CELL_SIZE + j], position );
-			sfRectangleShape_setFillColor( rectangles[i * WIDTH/CELL_SIZE + j], color );
-		}
-	}
+	STATE				cells[CELL_COUNT_X * CELL_COUNT_Y]		= { DEAD };
+	sfRectangleShape*	rectangles[CELL_COUNT_X * CELL_COUNT_Y]	= { NULL };
 
 	window = sfRenderWindow_create( mode, "Conway's Game of Life", sfClose, NULL );
 	if ( !window )
@@ -76,18 +101,19 @@ int main( int argc, char** argv )
 
 	sfRenderWindow_setFramerateLimit( window, 30 );
 
-	game_loop( window, &event, rectangles );
+	initiliaze( rectangles );
 
-	for ( i = 0; i < HEIGHT / CELL_SIZE; i++ )
+	while ( sfRenderWindow_isOpen( window ) )
 	{
-		int j;
-		for ( j = 0; j < WIDTH / CELL_SIZE; j++ )
-		{
-			sfRectangleShape_destroy( rectangles[i * WIDTH/CELL_SIZE + j] );
-		}
+		handle_input( window, &event );
+
+		update();
+
+		render( window, rectangles );
+
 	}
 
-	sfRenderWindow_destroy( window );
+	clean_up( window, rectangles );
 
 	return 0;
 }
