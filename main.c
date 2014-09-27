@@ -1,89 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * main.c
+ *
+ * Contains the main function and the game loop.
+ *
+ * Marvin Elsen, 27.09.2014
+ * --------------------------------------------------------------------------*/
 #include <stdio.h>
-#include <stdlib.h>
-
-#include <SFML/Graphics.h>
-
-#define WIDTH			1024
-#define HEIGHT			768
-
-#define CELL_SIZE		16
-
-#define CELL_COUNT_X	WIDTH / CELL_SIZE
-#define CELL_COUNT_Y	HEIGHT / CELL_SIZE
-
-typedef enum state {
-	DEAD,
-	ALIVE
-} STATE;
-
-void initiliaze( sfRectangleShape* rectangles[] )
-{
-	srand( 10 );
-
-	int y;
-	for ( y = 0; y < CELL_COUNT_Y; y++ )
-	{
-		int x;
-		for ( x = 0; x < CELL_COUNT_X; x++ )
-		{
-			rectangles[y * CELL_COUNT_X + x] = sfRectangleShape_create();
-			if ( !rectangles[y * CELL_COUNT_X + x] )
-				return 1;
-
-			sfVector2f	position	= { x * CELL_SIZE, y * CELL_SIZE  };
-			sfVector2f	size		= { CELL_SIZE, CELL_SIZE  };
-			sfColor		color		= { 1+rand()%255, 1+rand()%255, 1+rand()%255, 255 };
-
-			sfRectangleShape_setPosition( rectangles[y * CELL_COUNT_X + x], position );
-			sfRectangleShape_setSize( rectangles[y * CELL_COUNT_X + x], size );
-			sfRectangleShape_setFillColor( rectangles[y * CELL_COUNT_X + x], color );
-		}
-	}
-}
-
-void handle_input( sfRenderWindow* window, sfEvent* event )
-{
-	while ( sfRenderWindow_pollEvent( window, event ) )
-	{
-		if ( event->type == sfEvtClosed )
-			sfRenderWindow_close( window );
-	}
-}
-
-void update()
-{
-}
-
-void clean_up( sfRenderWindow* window, sfRectangleShape* rectangles[] )
-{
-	int y;
-	for ( y = 0; y < CELL_COUNT_Y; y++ )
-	{
-		int x;
-		for ( x = 0; x < CELL_COUNT_X; x++ )
-		{
-			sfRectangleShape_destroy( rectangles[y * CELL_COUNT_X + x] );
-		}
-	}
-	sfRenderWindow_destroy( window );
-}
-
-void render( sfRenderWindow* window, sfRectangleShape* rectangles[] )
-{
-	sfRenderWindow_clear( window, sfBlack );
-
-	int y;
-	for ( y = 0; y < CELL_COUNT_Y; y++ )
-	{
-		int x;
-		for ( x = 0; x < CELL_COUNT_X; x++ )
-		{
-			sfRenderWindow_drawRectangleShape( window, rectangles[y * CELL_COUNT_X + x], NULL );
-		}
-	}
-
-	sfRenderWindow_display( window );
-}
+#include "game_functions.h"
 
 int main( int argc, char** argv )
 {
@@ -92,8 +15,9 @@ int main( int argc, char** argv )
 
 	sfEvent				event;
 
-	STATE				cells[CELL_COUNT_X * CELL_COUNT_Y]		= { DEAD };
-	sfRectangleShape*	rectangles[CELL_COUNT_X * CELL_COUNT_Y]	= { NULL };
+	CELL				cells[CELL_COUNT_X * CELL_COUNT_Y];
+
+	bool simulate = false;
 
 	window = sfRenderWindow_create( mode, "Conway's Game of Life", sfClose, NULL );
 	if ( !window )
@@ -101,19 +25,19 @@ int main( int argc, char** argv )
 
 	sfRenderWindow_setFramerateLimit( window, 30 );
 
-	initiliaze( rectangles );
+	initiliaze_cells( cells );
 
 	while ( sfRenderWindow_isOpen( window ) )
 	{
-		handle_input( window, &event );
+		handle_input( window, &event, cells, &simulate );
 
-		update();
+		if ( simulate == true )
+			update( cells );
 
-		render( window, rectangles );
-
+		render( window, cells );
 	}
 
-	clean_up( window, rectangles );
+	clean_up( window, cells );
 
 	return 0;
 }
